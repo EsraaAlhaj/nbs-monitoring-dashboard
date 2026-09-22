@@ -91,14 +91,21 @@ label = VARIABLES[variable]["label"]
 avg_green = comparison["green"].mean()
 avg_ref = comparison["reference"].mean()
 
+# Cooling Hours is always based on air temperature (regardless of the variable
+# selected above, per spec) — computed once here and reused by the "Cooling
+# Performance Summary" section further down the page.
+temp_comparison = build_pair_comparison(readings, pair_id, variable="air_temperature_c")
+cooler_stats = count_cooler_hours(temp_comparison)
+
 st.subheader("Period Summary")
-m1, m2, m3 = st.columns(3)
+m1, m2, m3, m4 = st.columns(4)
 m1.metric(f"{label} — Green (avg)", f"{avg_green:.1f} {unit}" if pd.notna(avg_green) else "—")
 m2.metric(f"{label} — Reference (avg)", f"{avg_ref:.1f} {unit}" if pd.notna(avg_ref) else "—")
 if pd.notna(avg_green) and pd.notna(avg_ref):
     m3.metric("Average difference (Green − Reference)", f"{(avg_green - avg_ref):+.2f} {unit}")
 else:
     m3.metric("Average difference (Green − Reference)", "—")
+m4.metric("Cooling Hours", f"{cooler_stats['cooler_hours']:.1f} h")
 
 if variable in ("mean_radiant_temp_c", "utci_c"):
     render_estimate_note()
@@ -128,8 +135,6 @@ st.plotly_chart(fig_ts, use_container_width=True)
 # ---------------------------------------------------------------------------
 # Temperature difference over time (always air temperature, per spec)
 # ---------------------------------------------------------------------------
-temp_comparison = build_pair_comparison(readings, pair_id, variable="air_temperature_c")
-
 st.subheader("Temperature Difference Over Time (Green − Reference)")
 fig_delta = go.Figure()
 fig_delta.add_trace(
@@ -170,7 +175,6 @@ st.caption(
 # Cooling performance summary
 # ---------------------------------------------------------------------------
 st.subheader("Cooling Performance Summary")
-cooler_stats = count_cooler_hours(temp_comparison)
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Records where green was cooler", f"{cooler_stats['cooler_records']:,}", f"{cooler_stats['cooler_share_pct']:.1f}% of records")
 c2.metric("Equivalent hours cooler", f"{cooler_stats['cooler_hours']:.1f} h")

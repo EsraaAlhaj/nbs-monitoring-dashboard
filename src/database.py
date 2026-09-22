@@ -6,7 +6,7 @@ how to read/write it. It is deliberately kept "dumb" (plain SQL, no
 business logic) so that src/data_service.py can present a stable interface
 to the rest of the app regardless of where the data actually comes from.
 
-Nothing in pages/ or app.py should import this module directly — always go
+Nothing in views/ or app.py should import this module directly — always go
 through src/data_service.py.
 """
 

@@ -1,6 +1,6 @@
 """
-Statistical helpers shared by the Site Comparison, UTCI Analysis and
-Statistical Analysis pages.
+Statistical helpers shared by the Site Comparison and Thermal & Statistical
+Analysis pages.
 
 All functions take plain pandas DataFrames (as returned by
 src/data_service.py) and return DataFrames/scalars — no Streamlit or

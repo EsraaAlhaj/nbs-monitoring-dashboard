@@ -95,13 +95,17 @@ src/
                          stuck-sensor detection; station status summaries.
   styling.py              Shared CSS injection, page header, demo banner,
                          estimate-disclaimer helper, Plotly layout template.
-app.py                  Overview page (Streamlit entry point / multipage root).
-pages/
-  1_Site_Comparison.py    Green vs. reference comparison for a selected pair.
-  2_UTCI_Analysis.py      UTCI time series and heat-stress category breakdown.
-  3_Statistical_Analysis.py  Summary stats, scatter/box/histogram exploration.
-  4_Data_Quality.py       Completeness, gaps, implausible readings, stuck runs.
-  5_Downloads.py          CSV export of raw readings and comparison summaries.
+app.py                  Multipage entry point (Streamlit st.navigation router;
+                         run this with `streamlit run app.py`).
+views/
+  overview.py             Station map, status table, per-pair cooling cards.
+  network_trends.py       Multi-station/multi-pair trend explorer, one panel
+                         per Monitoring Area, shared time axis and scale.
+  site_comparison.py      Green vs. reference comparison for a selected pair.
+  thermal_statistical_analysis.py  UTCI Analysis and Statistical Analysis,
+                         combined as tabs on one page.
+  data_quality_downloads.py  Data Quality and Downloads, combined as tabs
+                         on one page.
 scripts/
   generate_data.py        CLI to (re)build the SQLite database from scratch.
 database/
@@ -110,7 +114,7 @@ database/
 tests/                   pytest suite covering comfort, data generation,
                          statistics, and data-quality logic.
 requirements.txt
-.streamlit/config.toml   Theme (calm blue/green, no third-party branding).
+.streamlit/config.toml   Theme (calm green, no third-party branding).
 ```
 
 ## Setup
@@ -151,18 +155,17 @@ pip install -r requirements.txt
    ```
 
    Streamlit will open the Overview page in your browser (default
-   `http://localhost:8501`) and list the other 5 pages in the sidebar.
+   `http://localhost:8501`) and list the other 4 pages in the sidebar.
 
 ## Pages
 
 | Page | Purpose |
 |---|---|
-| **Overview** | Station map, current status table, per-pair "cooling effect right now" cards. |
+| **Overview** | Current-pilot summary, station map, current status table, per-pair "cooling effect right now" cards. |
+| **Network Trends** | Multi-station / multi-pair explorer: pick any stations (or All Stations), a variable, date range, hour-of-day window, and display resolution (raw/hourly/daily); each Monitoring Area (site pair) is plotted in its own panel, sharing one time axis and value scale. |
 | **Site Comparison** | Green vs. reference time series for a chosen pair/variable/date range, cooler-hours share, hottest-period table. |
-| **UTCI Analysis** | UTCI over time, heat-stress category distribution and hours-per-category, full category table for green vs. reference. |
-| **Statistical Analysis** | Summary statistics, scatter (vs. a second variable), boxplot, and histogram, filterable by station, variable, date range, and hour-of-day. |
-| **Data Quality** | Completeness by station, station-status breakdown, time-gap list, implausible-reading list, stuck-sensor list. |
-| **Downloads** | CSV export of filtered raw readings, and of pair-comparison / cooling-summary / hottest-periods tables. |
+| **Thermal & Statistical Analysis** | Two tabs: *UTCI Analysis* (UTCI over time, heat-stress category distribution and hours-per-category, full category table for green vs. reference) and *Statistical Analysis* (summary statistics, scatter vs. a second variable, boxplot, histogram — filterable by station, variable, date range, hour-of-day). |
+| **Data Quality & Downloads** | Two tabs: *Data Quality* (completeness by station, station-status breakdown, time-gap list, implausible-reading list, stuck-sensor list) and *Downloads* (CSV export of filtered raw readings, and of pair-comparison / cooling-summary / hottest-periods tables). |
 
 ## Configuration
 
@@ -207,4 +210,4 @@ network later:
 1. Implement `APIDataSource` in `src/data_service.py` (the class and method
    stubs already exist — they currently raise `NotImplementedError`).
 2. Set `DATA_SOURCE_MODE = "api"` in `config/settings.py`.
-3. Nothing in `app.py` or `pages/*.py` needs to change.
+3. Nothing in `app.py` or `views/*.py` needs to change.

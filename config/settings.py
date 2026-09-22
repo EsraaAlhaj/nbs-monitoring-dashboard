@@ -34,7 +34,7 @@ DATABASE_PATH = DATABASE_DIR / "monitoring.db"
 #
 # Pages never talk to the database directly; they always go through
 # src/data_service.py, so flipping this flag (once a real API exists) does
-# not require any change to app.py or the files in pages/.
+# not require any change to app.py or the files in views/.
 DATA_SOURCE_MODE = "sqlite"
 
 # --------------------------------------------------------------------------
@@ -281,9 +281,9 @@ UTCI_CATEGORIES = [
 # --------------------------------------------------------------------------
 COLORS = {
     "green_site": "#2E7D5B",       # calm forest green - vegetated sites
-    "reference_site": "#2E6F9E",   # calm blue - reference/unplanted sites
+    "reference_site": "#595959",   # dark grey - reference/unplanted sites
     "green_site_fill": "rgba(46, 125, 91, 0.15)",
-    "reference_site_fill": "rgba(46, 111, 158, 0.15)",
+    "reference_site_fill": "rgba(89, 89, 89, 0.15)",
     "accent": "#F2A93B",           # warm amber accent for alerts/highlights
     "critical": "#C4453A",
     "background": "#F6F9F8",
@@ -322,8 +322,7 @@ DEMO_DATA_BANNER = (
 )
 
 ESTIMATE_DISCLAIMER = (
-    "Mean Radiant Temperature and UTCI shown here are simplified, "
-    "computed ESTIMATES derived from the simulated weather variables. "
-    "They are not field measurements from a globe thermometer or a "
-    "validated radiation-budget model."
+    "UTCI and Mean Radiant Temperature shown in this prototype are "
+    "estimated from simulated weather variables and should be treated as "
+    "indicative rather than field-validated measurements."
 )

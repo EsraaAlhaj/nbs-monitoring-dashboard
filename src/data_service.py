@@ -12,7 +12,7 @@ To make that switch WITHOUT rebuilding the interface, every page imports
 only the functions at the bottom of this file (``get_data_source`` and the
 module-level convenience wrappers), never src/database.py directly. Those
 functions return plain pandas DataFrames with a fixed set of columns
-regardless of backend, so pages/*.py never need to know whether the data
+regardless of backend, so views/*.py never need to know whether the data
 came from SQLite or a live API.
 
 TO INTEGRATE A REAL API LATER
@@ -21,7 +21,7 @@ TO INTEGRATE A REAL API LATER
    (methods: get_stations, get_readings, get_latest_readings).
 2. Set ``DATA_SOURCE_MODE = "api"`` in config/settings.py (plus whatever
    endpoint/credentials config the real API needs).
-3. Nothing in app.py or pages/ needs to change.
+3. Nothing in app.py or views/ needs to change.
 """
 
 from __future__ import annotations
