@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Generated demonstration database (regenerated automatically on first run;
+# see scripts/generate_data.py and src/cached_data.py)
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Claude Code local session data (not part of the app)
+.claude/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc local artifacts
+streamlit_log.txt
