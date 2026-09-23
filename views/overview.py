@@ -94,6 +94,11 @@ with f4:
         max_value=sim_end.date(),
     )
 
+st.caption(
+    "Pair and site names above are proposed candidate locations, not confirmed station "
+    "placements. Exact station siting is subject to field verification and university approval."
+)
+
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start_date, end_date = date_range
 else:

@@ -70,7 +70,7 @@ SITE_TYPE_REFERENCE = "reference"
 STATIONS = {
     "site_a_nbs": {
         "station_id": "ST01",
-        "name": "Female Student Housing — Green Site",
+        "name": "Pair 1 — Green Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -86,7 +86,7 @@ STATIONS = {
     },
     "site_a_reference": {
         "station_id": "ST02",
-        "name": "Female Student Housing — Reference Site",
+        "name": "Pair 1 — Reference Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -102,7 +102,7 @@ STATIONS = {
     },
     "site_b_nbs": {
         "station_id": "ST03",
-        "name": "Agriculture and Gardens Area — Green Site",
+        "name": "Pair 2 — Green Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -118,7 +118,7 @@ STATIONS = {
     },
     "site_b_reference": {
         "station_id": "ST04",
-        "name": "Agriculture and Gardens Area — Reference Site",
+        "name": "Pair 2 — Reference Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -137,13 +137,13 @@ STATIONS = {
 STATION_PAIRS = {
     "pair_a": {
         "pair_id": "pair_a",
-        "label": "Female Student Housing",
+        "label": "Proposed Pair 1 — Student Housing Area",
         "green": "site_a_nbs",
         "reference": "site_a_reference",
     },
     "pair_b": {
         "pair_id": "pair_b",
-        "label": "Agriculture and Gardens Area",
+        "label": "Proposed Pair 2 — Agriculture and Gardens Area",
         "green": "site_b_nbs",
         "reference": "site_b_reference",
     },
