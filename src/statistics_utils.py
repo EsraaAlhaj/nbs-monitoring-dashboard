@@ -57,6 +57,19 @@ def hourly_profile(comparison_df: pd.DataFrame) -> pd.DataFrame:
     return profile
 
 
+def daily_profile(comparison_df: pd.DataFrame) -> pd.DataFrame:
+    """Average green/reference/delta by calendar date across the whole period."""
+    df = comparison_df.copy()
+    df["date"] = pd.to_datetime(df["timestamp"]).dt.date
+    profile = (
+        df.groupby("date")[["green", "reference", "delta"]]
+        .mean()
+        .reset_index()
+        .sort_values("date")
+    )
+    return profile
+
+
 def count_cooler_hours(comparison_df: pd.DataFrame) -> dict:
     """
     Count how many timestamps (converted to hours of 15-min records) the

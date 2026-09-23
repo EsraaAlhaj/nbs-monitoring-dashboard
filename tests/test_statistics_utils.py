@@ -10,6 +10,7 @@ from src.statistics_utils import (
     attach_station_metadata,
     build_pair_comparison,
     count_cooler_hours,
+    daily_profile,
     hottest_periods,
     hourly_profile,
     site_type_label,
@@ -72,6 +73,15 @@ def test_hourly_profile_averages_by_hour():
     hour0 = profile[profile["hour"] == 0]
     # All four records fall within hour 0 (00:00-00:45).
     assert hour0["delta"].iloc[0] == pytest.approx((-1.0 - 2.0 - 3.0 + 2.0) / 4)
+
+
+def test_daily_profile_averages_by_date():
+    readings = _make_readings()
+    comparison = build_pair_comparison(readings, PAIR_ID, variable="air_temperature_c")
+    profile = daily_profile(comparison)
+    # All four records fall on the same calendar date (2026-07-01).
+    assert len(profile) == 1
+    assert profile["delta"].iloc[0] == pytest.approx((-1.0 - 2.0 - 3.0 + 2.0) / 4)
 
 
 def test_summary_statistics_per_station():

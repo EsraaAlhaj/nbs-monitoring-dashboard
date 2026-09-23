@@ -10,8 +10,8 @@ import streamlit as st
 
 from config.settings import COLORS, DEMO_DATA_BANNER, ESTIMATE_DISCLAIMER
 
-APP_TITLE = "Nature-based Solutions Impact Monitoring"
-APP_SUBTITLE = "University of Jordan — Interactive Prototype"
+APP_TITLE = "Urban NBS Microclimate Monitoring Platform"
+APP_SUBTITLE = "Proposed pilot: University of Jordan | Scalable urban heat monitoring and decision-support platform"
 
 
 def inject_base_css() -> None:

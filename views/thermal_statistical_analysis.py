@@ -115,16 +115,16 @@ def _render_utci_tab() -> None:
     latest_ref_cat = classify_utci_value(latest_row["reference"]) if pd.notna(latest_row["reference"]) else None
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Average UTCI — Green", f"{avg_green:.1f} °C" if pd.notna(avg_green) else "—")
-    m2.metric("Average UTCI — Reference", f"{avg_ref:.1f} °C" if pd.notna(avg_ref) else "—")
+    m1.metric("Average Estimated UTCI — Green", f"{avg_green:.1f} °C" if pd.notna(avg_green) else "—")
+    m2.metric("Average Estimated UTCI — Reference", f"{avg_ref:.1f} °C" if pd.notna(avg_ref) else "—")
     m3.metric(
-        "Latest UTCI — Green",
+        "Latest Estimated UTCI — Green",
         f"{latest_row['green']:.1f} °C" if pd.notna(latest_row["green"]) else "—",
         latest_green_cat,
         delta_color="off",
     )
     m4.metric(
-        "Latest UTCI — Reference",
+        "Latest Estimated UTCI — Reference",
         f"{latest_row['reference']:.1f} °C" if pd.notna(latest_row["reference"]) else "—",
         latest_ref_cat,
         delta_color="off",
@@ -133,7 +133,7 @@ def _render_utci_tab() -> None:
     # -----------------------------------------------------------------
     # UTCI over time
     # -----------------------------------------------------------------
-    st.subheader("UTCI Over Time")
+    st.subheader("Estimated UTCI Over Time")
     fig_ts = go.Figure()
     fig_ts.add_trace(
         go.Scatter(
@@ -394,7 +394,7 @@ def _render_statistical_tab() -> None:
     st.plotly_chart(fig_hist, use_container_width=True)
 
 
-tab_utci, tab_stats = st.tabs(["UTCI Analysis", "Statistical Analysis"])
+tab_utci, tab_stats = st.tabs(["Estimated UTCI Analysis", "Statistical Analysis"])
 with tab_utci:
     _render_utci_tab()
 with tab_stats:

@@ -36,8 +36,8 @@ the same regional weather and differ mainly in local land cover:
 
 | Pair | NBS site | Reference site |
 |---|---|---|
-| Site Pair A | NBS Site A — vegetated green-infrastructure (location TBD) | Reference Site A — nearby unplanted open ground (location TBD) |
-| Site Pair B | NBS Site B — vegetated green-infrastructure (location TBD) | Reference Site B — nearby unplanted open ground (location TBD) |
+| Female Student Housing | Female Student Housing — Green Site — vegetated green-infrastructure (candidate location, not field-verified) | Female Student Housing — Reference Site — nearby unplanted open ground (candidate location, not field-verified) |
+| Agriculture and Gardens Area | Agriculture and Gardens Area — Green Site — vegetated green-infrastructure (candidate location, not field-verified) | Agriculture and Gardens Area — Reference Site — nearby unplanted open ground (candidate location, not field-verified) |
 
 For each of the 4 stations, the simulator produces 30 days of summer data
 at 15-minute resolution: air temperature, relative humidity, wind speed &
@@ -56,11 +56,12 @@ real to detect and report.
 
 ## Data disclaimer
 
-- **Station names and coordinates are generic placeholders.** The four
-  stations are currently labelled NBS Site A / Reference Site A / NBS Site B
-  / Reference Site B, with `latitude`/`longitude`/`elevation_m` left unset
-  (`None`) — real site selection has not happened yet. Once real sites are
-  chosen, add their names and GPS coordinates to `STATIONS` in
+- **Station names are proposed candidate locations, not field-verified.**
+  The four stations are currently labelled Female Student Housing —
+  Green/Reference Site and Agriculture and Gardens Area — Green/Reference
+  Site, with `latitude`/`longitude`/`elevation_m` left unset (`None`) —
+  these names have not been field-verified or formally approved. Once real
+  sites are confirmed, add their GPS coordinates to `STATIONS` in
   [`config/settings.py`](config/settings.py) (avoiding the Clock Tower
   plaza, per `EXCLUDED_LANDMARK`) — no other file needs to change. See
   `STATION_SITING_DISCLAIMER` in [`config/settings.py`](config/settings.py).

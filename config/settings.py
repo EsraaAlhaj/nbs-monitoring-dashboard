@@ -38,29 +38,30 @@ DATABASE_PATH = DATABASE_DIR / "monitoring.db"
 DATA_SOURCE_MODE = "sqlite"
 
 # --------------------------------------------------------------------------
-# IMPORTANT — Station identity & siting: NOT YET FINALISED
+# IMPORTANT — Station identity & siting: PROPOSED, NOT FIELD-VERIFIED
 # --------------------------------------------------------------------------
-# Real site selection has not happened yet. Station names below are GENERIC
-# PLACEHOLDERS ("NBS Site A/B", "Reference Site A/B") and `latitude` /
-# `longitude` / `elevation_m` are deliberately left as `None` — this
-# prototype does not commit to any specific location, building, or
-# sub-area, not even an approximate one.
+# Station names below identify proposed candidate areas for this pilot, as
+# provided for the approved decision-support design. Exact on-the-ground
+# placement has not been field-verified or formally approved by the
+# university, so `latitude` / `longitude` / `elevation_m` are deliberately
+# left as `None` until real GPS points are surveyed and confirmed.
 #
 # Each "reference" station is intended to be a short, plausible walking
-# distance from its paired "NBS" (green/vegetated) station so the two
+# distance from its paired "green" (NbS/vegetated) station so the two
 # experience the same regional weather and differ mainly in local land
-# cover (vegetated vs. bare/paved) once real sites are chosen.
+# cover (vegetated vs. bare/paved) once real sites are confirmed.
 #
-# When real sites are selected:
+# When real sites are confirmed:
 #   1. Fill in `latitude`, `longitude`, and `elevation_m` for each station
 #      below (do not hard-code coordinates anywhere else in the project).
-#   2. Update `name`/`description` if the generic Site A/B labelling should
-#      be replaced with real place names.
+#   2. Update `name`/`description` if the proposed area labelling should
+#      be replaced with more precise place names.
 #   3. Do not site a station at EXCLUDED_LANDMARK below.
 STATION_SITING_DISCLAIMER = (
-    "Station names and coordinates are generic placeholders — real site "
-    "selection has not yet been finalised. Coordinates are intentionally "
-    "left unset (None) until field-verified GPS points are available."
+    "Station names reflect proposed candidate locations for this pilot and "
+    "have not been field-verified or formally approved. Coordinates are "
+    "intentionally left unset (None) until real GPS points are surveyed "
+    "and confirmed."
 )
 
 SITE_TYPE_GREEN = "green"
@@ -69,7 +70,7 @@ SITE_TYPE_REFERENCE = "reference"
 STATIONS = {
     "site_a_nbs": {
         "station_id": "ST01",
-        "name": "NBS Site A",
+        "name": "Female Student Housing — Green Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -78,14 +79,14 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.30,  # assumed rougher: vegetated canopy/shrub cover
         "description": (
-            "Placeholder NbS (vegetated green-infrastructure) site. Exact "
-            "location not yet selected — add real name/coordinates here "
-            "once available."
+            "Proposed NbS (vegetated green-infrastructure) site at the "
+            "Female Student Housing area — a candidate location for this "
+            "pilot, not yet field-verified."
         ),
     },
     "site_a_reference": {
         "station_id": "ST02",
-        "name": "Reference Site A",
+        "name": "Female Student Housing — Reference Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -94,14 +95,14 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.03,  # assumed open, unplanted / paved surface
         "description": (
-            "Placeholder reference (non-intervention) site paired with NBS "
-            "Site A. Exact location not yet selected — add real "
-            "name/coordinates here once available."
+            "Proposed reference (non-intervention) site paired with the "
+            "Female Student Housing green site — a candidate location for "
+            "this pilot, not yet field-verified."
         ),
     },
     "site_b_nbs": {
         "station_id": "ST03",
-        "name": "NBS Site B",
+        "name": "Agriculture and Gardens Area — Green Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -110,14 +111,14 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.35,  # assumed denser vegetation/planting
         "description": (
-            "Placeholder NbS (vegetated green-infrastructure) site. Exact "
-            "location not yet selected — add real name/coordinates here "
-            "once available."
+            "Proposed NbS (vegetated green-infrastructure) site at the "
+            "Agriculture and Gardens Area — a candidate location for this "
+            "pilot, not yet field-verified."
         ),
     },
     "site_b_reference": {
         "station_id": "ST04",
-        "name": "Reference Site B",
+        "name": "Agriculture and Gardens Area — Reference Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -126,9 +127,9 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.03,  # assumed open, unplanted / paved surface
         "description": (
-            "Placeholder reference (non-intervention) site paired with NBS "
-            "Site B. Exact location not yet selected — add real "
-            "name/coordinates here once available."
+            "Proposed reference (non-intervention) site paired with the "
+            "Agriculture and Gardens Area green site — a candidate "
+            "location for this pilot, not yet field-verified."
         ),
     },
 }
@@ -136,13 +137,13 @@ STATIONS = {
 STATION_PAIRS = {
     "pair_a": {
         "pair_id": "pair_a",
-        "label": "Site Pair A",
+        "label": "Female Student Housing",
         "green": "site_a_nbs",
         "reference": "site_a_reference",
     },
     "pair_b": {
         "pair_id": "pair_b",
-        "label": "Site Pair B",
+        "label": "Agriculture and Gardens Area",
         "green": "site_b_nbs",
         "reference": "site_b_reference",
     },
