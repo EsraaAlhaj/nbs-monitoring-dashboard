@@ -20,10 +20,9 @@ from config.settings import (
     SIMULATION_START_DATE,
     STATION_PAIRS,
     STATIONS,
-    STATUS_COLORS,
     VARIABLES,
 )
-from src.cached_data import load_latest_readings, load_readings, load_stations
+from src.cached_data import load_readings, load_stations
 from src.quality_checks import completeness_by_station
 from src.statistics_utils import (
     build_pair_comparison,
@@ -47,7 +46,6 @@ render_page_header("Overview")
 render_demo_banner()
 
 stations_df = load_stations()
-latest_df = load_latest_readings()
 
 st.markdown(f"**Current pilot: {len(stations_df)} stations | Platform designed for network expansion**")
 
@@ -58,36 +56,6 @@ st.markdown(
     "reference sites on the University of Jordan campus. Two station pairs "
     "are shown below."
 )
-
-if latest_df.empty:
-    st.warning(
-        "No readings found in the database yet. Run `python scripts/generate_data.py` "
-        "to generate the synthetic demonstration dataset, then reload this page."
-    )
-    st.stop()
-
-merged = stations_df.merge(
-    latest_df.drop(columns=["reading_id"], errors="ignore"), on="station_id", how="left"
-)
-
-
-def _display_status(raw_status: str) -> str:
-    """Overview-only display label: 'active' reads as 'Simulated' (this is a
-    demonstration pilot, not a live sensor network); other statuses are
-    shown as-is. Does not affect the underlying station_status values or
-    STATUS_COLORS lookups used elsewhere in the app."""
-    raw_lower = str(raw_status).lower()
-    if raw_lower == "active":
-        return "Simulated"
-    return str(raw_status).capitalize()
-
-
-DISPLAY_STATUS_COLORS = {
-    "Simulated": STATUS_COLORS["active"],
-    "Maintenance": STATUS_COLORS["maintenance"],
-    "Offline": STATUS_COLORS["offline"],
-    "No data": "#888888",
-}
 
 # ---------------------------------------------------------------------------
 # Filters
@@ -154,8 +122,21 @@ else:
     # variable filter only changes the large paired-comparison chart.
     temp_comparison = build_pair_comparison(filtered_readings, pair_id, variable="air_temperature_c")
     cooler_stats = count_cooler_hours(temp_comparison)
-    hottest = hottest_periods(temp_comparison, top_n=10)
-    peak_period_diff = (-hottest["cooling_effect_c"]).mean() if not hottest.empty else float("nan")
+
+    # "Hottest-period" = the hottest 10% of valid reference-site observations
+    # in the selected period (not a fixed count), so the KPI scales sensibly
+    # with whatever date range is selected.
+    n_valid_reference = int(temp_comparison["reference"].notna().sum())
+    hottest_top_n = max(1, round(n_valid_reference * 0.10))
+    hottest = hottest_periods(temp_comparison, top_n=hottest_top_n)
+
+    # Unified convention across the whole page: cooling difference =
+    # Reference − Green. Positive means the green site measured cooler.
+    # count_cooler_hours() returns Green − Reference internally (shared with
+    # other pages), so the sign is flipped here only, at display time.
+    avg_cooling_diff = -cooler_stats["mean_delta_c"] if pd.notna(cooler_stats["mean_delta_c"]) else float("nan")
+    peak_period_diff = hottest["cooling_effect_c"].mean() if not hottest.empty else float("nan")
+
     completeness = completeness_by_station(filtered_readings, start_ts, end_ts)
     data_availability_pct = completeness["completeness_pct"].mean() if not completeness.empty else float("nan")
     cooling_hours_per_day = cooler_stats["cooler_hours"] / num_days if num_days else float("nan")
@@ -166,25 +147,29 @@ else:
     st.subheader("Key Indicators")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric(
-        "Average air-temperature difference",
-        f"{cooler_stats['mean_delta_c']:+.2f} °C" if pd.notna(cooler_stats["mean_delta_c"]) else "—",
+        "Average cooling difference",
+        f"{avg_cooling_diff:+.2f} °C" if pd.notna(avg_cooling_diff) else "—",
+        help="Reference minus green air temperature, averaged over the selected period. Positive means the green site measured cooler.",
     )
     k2.metric(
-        "Cooling hours per day",
+        "Cooling hours/day",
         f"{cooling_hours_per_day:.1f} h" if pd.notna(cooling_hours_per_day) else "—",
+        help="Average number of hours per day the green site measured cooler than the reference site.",
     )
     k3.metric(
-        "Peak-period temperature difference",
+        "Hottest-period difference",
         f"{peak_period_diff:+.2f} °C" if pd.notna(peak_period_diff) else "—",
+        help="Reference minus green air temperature, averaged over the hottest 10% of reference-site readings in the selected period. Positive means the green site measured cooler during the hottest conditions.",
     )
     k4.metric(
         "Data availability",
         f"{data_availability_pct:.1f}%" if pd.notna(data_availability_pct) else "—",
+        help="Average share of expected 15-minute readings actually received, across the two selected stations.",
     )
     st.caption(
-        "Air-temperature figures are Green − Reference (negative means the green site measured cooler). "
-        "Peak-period figure covers the ten highest reference-site readings in the selected period. "
-        "Data availability is the average share of expected readings received for these two stations."
+        "Cooling difference = Reference − Green air temperature; positive values mean the green site "
+        "measured cooler. Hottest-period figure uses the hottest 10% of reference-site readings in the "
+        "selected period."
     )
 
     # -----------------------------------------------------------------
@@ -244,8 +229,8 @@ else:
         st.plotly_chart(fig_day, use_container_width=True)
 
         st.caption(
-            "Positive values indicate the green site measured cooler than the reference "
-            "site (based on air temperature)."
+            "Cooling effect = Reference − Green air temperature; positive values mean the "
+            "green site measured cooler."
         )
 
     # -----------------------------------------------------------------
@@ -265,120 +250,3 @@ else:
             with st.container(border=True):
                 st.markdown(f"**Step {i}**")
                 st.markdown(step)
-
-st.divider()
-
-# ---------------------------------------------------------------------------
-# Station map
-# ---------------------------------------------------------------------------
-st.subheader("Monitoring Stations")
-
-has_coordinates = merged["latitude"].notna().any() and merged["longitude"].notna().any()
-
-if not has_coordinates:
-    st.info("Station locations will be added following field verification and university approval.")
-else:
-    fig_map = go.Figure()
-    for site_type, color, label in [
-        ("green", COLORS["green_site"], "NBS (vegetated) site"),
-        ("reference", COLORS["reference_site"], "Reference (unplanted) site"),
-    ]:
-        subset = merged[
-            (merged["site_type"] == site_type) & merged["latitude"].notna() & merged["longitude"].notna()
-        ]
-        if subset.empty:
-            continue
-        hover_text = [
-            f"<b>{row['name']}</b><br>Status: {_display_status(row.get('station_status'))}"
-            f"<br>Last update: {row['timestamp']}"
-            for _, row in subset.iterrows()
-        ]
-        fig_map.add_trace(
-            go.Scattermapbox(
-                lat=subset["latitude"],
-                lon=subset["longitude"],
-                mode="markers",
-                marker=dict(size=18, color=color),
-                name=label,
-                text=hover_text,
-                hoverinfo="text",
-            )
-        )
-
-    valid_coords = merged.dropna(subset=["latitude", "longitude"])
-    center_lat = float(valid_coords["latitude"].mean())
-    center_lon = float(valid_coords["longitude"].mean())
-    fig_map.update_layout(
-        mapbox=dict(style="open-street-map", center=dict(lat=center_lat, lon=center_lon), zoom=13.5),
-        height=420,
-        margin=dict(l=0, r=0, t=0, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=0.01, xanchor="left", x=0.01, bgcolor="rgba(255,255,255,0.75)"),
-    )
-    st.plotly_chart(fig_map, use_container_width=True)
-
-# ---------------------------------------------------------------------------
-# Station status table
-# ---------------------------------------------------------------------------
-st.subheader("Station Status")
-
-status_table = merged[["name", "site_type", "station_status", "timestamp"]].copy()
-status_table["station_status"] = status_table["station_status"].fillna("no data")
-status_table.columns = ["Station", "Site Type", "Status", "Last Update"]
-status_table["Site Type"] = status_table["Site Type"].str.capitalize()
-status_table["Status"] = status_table["Status"].apply(_display_status)
-
-
-def _status_style(val: str) -> str:
-    color = DISPLAY_STATUS_COLORS.get(str(val), "#888888")
-    return f"background-color: {color}26; color: {color}; font-weight: 600;"
-
-
-st.dataframe(
-    status_table.style.map(_status_style, subset=["Status"]),
-    use_container_width=True,
-    hide_index=True,
-)
-
-# ---------------------------------------------------------------------------
-# Pair summary cards
-# ---------------------------------------------------------------------------
-st.subheader("Site Pairs — Demonstration Site Comparison")
-
-pair_cols = st.columns(len(STATION_PAIRS))
-for col, (card_pair_id, card_pair) in zip(pair_cols, STATION_PAIRS.items()):
-    card_green_meta = STATIONS[card_pair["green"]]
-    card_ref_meta = STATIONS[card_pair["reference"]]
-    green_row = merged[merged["station_id"] == card_green_meta["station_id"]]
-    ref_row = merged[merged["station_id"] == card_ref_meta["station_id"]]
-
-    with col:
-        st.markdown(f"**{card_pair['label']}**")
-        if green_row.empty or ref_row.empty:
-            st.info("Station metadata unavailable.")
-            continue
-
-        g_temp = green_row["air_temperature_c"].iloc[0]
-        r_temp = ref_row["air_temperature_c"].iloc[0]
-        g_status = green_row["station_status"].iloc[0]
-        r_status = ref_row["station_status"].iloc[0]
-
-        if pd.notna(g_temp) and pd.notna(r_temp):
-            delta = g_temp - r_temp
-            st.metric(
-                label=f"{card_green_meta['name']}",
-                value=f"{g_temp:.1f} °C",
-                delta=f"{delta:+.1f} °C vs. reference",
-                delta_color="inverse",
-            )
-            st.caption(f"Reference ({card_ref_meta['name']}): {r_temp:.1f} °C")
-        else:
-            st.info(
-                f"Latest reading unavailable — green: {_display_status(g_status)}, "
-                f"reference: {_display_status(r_status)}."
-            )
-
-st.divider()
-st.caption(
-    "Use the navigation sidebar to explore Network Trends, Site Comparison, "
-    "Thermal & Statistical Analysis, and Data Quality & Downloads."
-)
