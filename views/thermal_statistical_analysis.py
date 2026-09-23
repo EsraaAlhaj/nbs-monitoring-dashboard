@@ -33,7 +33,15 @@ from config.settings import (
 from src.cached_data import load_readings
 from src.comfort import classify_utci_series, classify_utci_value
 from src.statistics_utils import attach_station_metadata, build_pair_comparison, summary_statistics
-from src.styling import APP_TITLE, apply_common_layout, inject_base_css, render_demo_banner, render_estimate_note, render_page_header
+from src.styling import (
+    APP_TITLE,
+    apply_common_layout,
+    inject_base_css,
+    render_demo_banner,
+    render_estimate_note,
+    render_kpi_card,
+    render_page_header,
+)
 
 st.set_page_config(page_title=f"{APP_TITLE} — Thermal & Statistical Analysis", layout="wide")
 inject_base_css()
@@ -115,20 +123,28 @@ def _render_utci_tab() -> None:
     latest_ref_cat = classify_utci_value(latest_row["reference"]) if pd.notna(latest_row["reference"]) else None
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Average Estimated UTCI — Green", f"{avg_green:.1f} °C" if pd.notna(avg_green) else "—")
-    m2.metric("Average Estimated UTCI — Reference", f"{avg_ref:.1f} °C" if pd.notna(avg_ref) else "—")
-    m3.metric(
-        "Latest Estimated UTCI — Green",
-        f"{latest_row['green']:.1f} °C" if pd.notna(latest_row["green"]) else "—",
-        latest_green_cat,
-        delta_color="off",
-    )
-    m4.metric(
-        "Latest Estimated UTCI — Reference",
-        f"{latest_row['reference']:.1f} °C" if pd.notna(latest_row["reference"]) else "—",
-        latest_ref_cat,
-        delta_color="off",
-    )
+    with m1:
+        render_kpi_card(
+            "Average Estimated UTCI — Green",
+            f"{avg_green:.1f} °C" if pd.notna(avg_green) else "—",
+        )
+    with m2:
+        render_kpi_card(
+            "Average Estimated UTCI — Reference",
+            f"{avg_ref:.1f} °C" if pd.notna(avg_ref) else "—",
+        )
+    with m3:
+        render_kpi_card(
+            "Latest Estimated UTCI — Green",
+            f"{latest_row['green']:.1f} °C" if pd.notna(latest_row["green"]) else "—",
+            latest_green_cat or "",
+        )
+    with m4:
+        render_kpi_card(
+            "Latest Estimated UTCI — Reference",
+            f"{latest_row['reference']:.1f} °C" if pd.notna(latest_row["reference"]) else "—",
+            latest_ref_cat or "",
+        )
 
     # -----------------------------------------------------------------
     # UTCI over time
