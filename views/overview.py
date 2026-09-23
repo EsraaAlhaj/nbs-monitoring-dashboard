@@ -37,6 +37,7 @@ from src.styling import (
     inject_base_css,
     render_demo_banner,
     render_estimate_note,
+    render_kpi_card,
     render_page_header,
 )
 
@@ -151,26 +152,30 @@ else:
     # -----------------------------------------------------------------
     st.subheader("Key Indicators")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric(
-        "Average cooling difference",
-        f"{avg_cooling_diff:+.2f} °C" if pd.notna(avg_cooling_diff) else "—",
-        help="Reference minus green air temperature, averaged over the selected period. Positive means the green site measured cooler.",
-    )
-    k2.metric(
-        "Cooling hours/day",
-        f"{cooling_hours_per_day:.1f} h" if pd.notna(cooling_hours_per_day) else "—",
-        help="Average number of hours per day the green site measured cooler than the reference site.",
-    )
-    k3.metric(
-        "Hottest-period difference",
-        f"{peak_period_diff:+.2f} °C" if pd.notna(peak_period_diff) else "—",
-        help="Reference minus green air temperature, averaged over the hottest 10% of reference-site readings in the selected period. Positive means the green site measured cooler during the hottest conditions.",
-    )
-    k4.metric(
-        "Data availability",
-        f"{data_availability_pct:.1f}%" if pd.notna(data_availability_pct) else "—",
-        help="Average share of expected 15-minute readings actually received, across the two selected stations.",
-    )
+    with k1:
+        render_kpi_card(
+            "Average cooling difference",
+            f"{avg_cooling_diff:+.2f} °C" if pd.notna(avg_cooling_diff) else "—",
+            help="Reference minus green air temperature, averaged over the selected period. Positive means the green site measured cooler.",
+        )
+    with k2:
+        render_kpi_card(
+            "Cooling hours/day",
+            f"{cooling_hours_per_day:.1f} h" if pd.notna(cooling_hours_per_day) else "—",
+            help="Average number of hours per day the green site measured cooler than the reference site.",
+        )
+    with k3:
+        render_kpi_card(
+            "Hottest-period difference",
+            f"{peak_period_diff:+.2f} °C" if pd.notna(peak_period_diff) else "—",
+            help="Reference minus green air temperature, averaged over the hottest 10% of reference-site readings in the selected period. Positive means the green site measured cooler during the hottest conditions.",
+        )
+    with k4:
+        render_kpi_card(
+            "Data availability",
+            f"{data_availability_pct:.1f}%" if pd.notna(data_availability_pct) else "—",
+            help="Average share of expected 15-minute readings actually received, across the two selected stations.",
+        )
     st.caption(
         "Cooling difference = Reference − Green air temperature; positive values mean the green site "
         "measured cooler. Hottest-period figure uses the hottest 10% of reference-site readings in the "

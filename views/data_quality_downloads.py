@@ -38,7 +38,14 @@ from src.quality_checks import (
     station_status_summary,
 )
 from src.statistics_utils import build_pair_comparison, count_cooler_hours, hottest_periods
-from src.styling import APP_TITLE, apply_common_layout, inject_base_css, render_demo_banner, render_page_header
+from src.styling import (
+    APP_TITLE,
+    apply_common_layout,
+    inject_base_css,
+    render_demo_banner,
+    render_kpi_card,
+    render_page_header,
+)
 
 st.set_page_config(page_title=f"{APP_TITLE} — Data Quality & Downloads", layout="wide")
 inject_base_css()
@@ -110,14 +117,19 @@ def _render_data_quality_tab() -> None:
     # -----------------------------------------------------------------
     st.subheader("Overview")
     o1, o2, o3, o4, o5 = st.columns(5)
-    o1.metric("Records in selection", f"{len(readings):,}")
-    o2.metric(
-        "Average completeness",
-        f"{completeness['completeness_pct'].mean():.1f}%" if not completeness.empty else "—",
-    )
-    o3.metric("Time gaps detected", f"{len(gaps):,}")
-    o4.metric("Implausible readings", f"{len(implausible):,}")
-    o5.metric("Stuck-sensor runs", f"{len(stuck):,}")
+    with o1:
+        render_kpi_card("Records in selection", f"{len(readings):,}")
+    with o2:
+        render_kpi_card(
+            "Average completeness",
+            f"{completeness['completeness_pct'].mean():.1f}%" if not completeness.empty else "—",
+        )
+    with o3:
+        render_kpi_card("Time gaps detected", f"{len(gaps):,}")
+    with o4:
+        render_kpi_card("Implausible readings", f"{len(implausible):,}")
+    with o5:
+        render_kpi_card("Stuck-sensor runs", f"{len(stuck):,}")
 
     # -----------------------------------------------------------------
     # Completeness

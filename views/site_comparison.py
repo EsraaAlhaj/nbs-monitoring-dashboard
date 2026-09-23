@@ -22,7 +22,15 @@ from config.settings import (
 )
 from src.cached_data import load_readings
 from src.statistics_utils import build_pair_comparison, count_cooler_hours, hottest_periods, hourly_profile
-from src.styling import APP_TITLE, apply_common_layout, inject_base_css, render_demo_banner, render_estimate_note, render_page_header
+from src.styling import (
+    APP_TITLE,
+    apply_common_layout,
+    inject_base_css,
+    render_demo_banner,
+    render_estimate_note,
+    render_kpi_card,
+    render_page_header,
+)
 
 st.set_page_config(page_title=f"{APP_TITLE} — Site Comparison", layout="wide")
 inject_base_css()
@@ -99,13 +107,18 @@ cooler_stats = count_cooler_hours(temp_comparison)
 
 st.subheader("Period Summary")
 m1, m2, m3, m4 = st.columns(4)
-m1.metric(f"{label} — Green (avg)", f"{avg_green:.1f} {unit}" if pd.notna(avg_green) else "—")
-m2.metric(f"{label} — Reference (avg)", f"{avg_ref:.1f} {unit}" if pd.notna(avg_ref) else "—")
-if pd.notna(avg_green) and pd.notna(avg_ref):
-    m3.metric("Average difference (Green − Reference)", f"{(avg_green - avg_ref):+.2f} {unit}")
-else:
-    m3.metric("Average difference (Green − Reference)", "—")
-m4.metric("Cooling Hours", f"{cooler_stats['cooler_hours']:.1f} h")
+with m1:
+    render_kpi_card(f"{label} — Green (avg)", f"{avg_green:.1f} {unit}" if pd.notna(avg_green) else "—")
+with m2:
+    render_kpi_card(f"{label} — Reference (avg)", f"{avg_ref:.1f} {unit}" if pd.notna(avg_ref) else "—")
+with m3:
+    if pd.notna(avg_green) and pd.notna(avg_ref):
+        diff_value = f"{(avg_green - avg_ref):+.2f} {unit}"
+    else:
+        diff_value = "—"
+    render_kpi_card("Average difference (Green − Reference)", diff_value)
+with m4:
+    render_kpi_card("Cooling Hours", f"{cooler_stats['cooler_hours']:.1f} h")
 
 if variable in ("mean_radiant_temp_c", "utci_c"):
     render_estimate_note()
@@ -159,16 +172,20 @@ st.subheader("Average Temperature Difference by Hour of Day")
 profile = hourly_profile(temp_comparison)
 fig_hour = go.Figure()
 fig_hour.add_trace(
-    go.Bar(x=profile["hour"], y=profile["delta"], name="Mean Δ Temperature", marker_color=COLORS["green_site"])
+    go.Bar(
+        x=profile["hour"], y=-profile["delta"],
+        name="Reference − Green", marker_color=COLORS["green_site"],
+    )
 )
 fig_hour.add_hline(y=0, line_dash="dot", line_color=COLORS["text_muted"])
 fig_hour = apply_common_layout(fig_hour)
 fig_hour.update_xaxes(title="Hour of day (local)", dtick=1)
-fig_hour.update_yaxes(title="Mean temperature difference (°C)")
+fig_hour.update_yaxes(title="Reference − Green (°C)")
 st.plotly_chart(fig_hour, use_container_width=True)
+st.caption("Positive values indicate lower air temperature at the green site.")
 st.caption(
-    "This profile is expected to show the cooling effect strengthening through the sunlit hours "
-    "(shading and evapotranspiration) rather than remaining a fixed offset."
+    "Simulated demonstration data illustrating how hourly temperature differences may be presented. "
+    "Actual results will be determined through field monitoring."
 )
 
 # ---------------------------------------------------------------------------
@@ -176,10 +193,24 @@ st.caption(
 # ---------------------------------------------------------------------------
 st.subheader("Cooling Performance Summary")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Records where green was cooler", f"{cooler_stats['cooler_records']:,}", f"{cooler_stats['cooler_share_pct']:.1f}% of records")
-c2.metric("Equivalent hours cooler", f"{cooler_stats['cooler_hours']:.1f} h")
-c3.metric("Mean temperature difference", f"{cooler_stats['mean_delta_c']:+.2f} °C" if pd.notna(cooler_stats['mean_delta_c']) else "—")
-c4.metric("Maximum cooling observed", f"{cooler_stats['max_cooling_c']:.2f} °C" if pd.notna(cooler_stats['max_cooling_c']) else "—")
+with c1:
+    render_kpi_card(
+        "Records where green was cooler",
+        f"{cooler_stats['cooler_records']:,}",
+        f"{cooler_stats['cooler_share_pct']:.1f}% of records",
+    )
+with c2:
+    render_kpi_card("Equivalent hours cooler", f"{cooler_stats['cooler_hours']:.1f} h")
+with c3:
+    render_kpi_card(
+        "Mean temperature difference",
+        f"{cooler_stats['mean_delta_c']:+.2f} °C" if pd.notna(cooler_stats['mean_delta_c']) else "—",
+    )
+with c4:
+    render_kpi_card(
+        "Maximum cooling observed",
+        f"{cooler_stats['max_cooling_c']:.2f} °C" if pd.notna(cooler_stats['max_cooling_c']) else "—",
+    )
 
 # ---------------------------------------------------------------------------
 # Hottest periods analysis

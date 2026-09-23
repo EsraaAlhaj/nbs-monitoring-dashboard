@@ -25,15 +25,6 @@ def inject_base_css() -> None:
             color: {COLORS['text_primary']};
             font-weight: 600;
         }}
-        [data-testid="stMetric"] {{
-            background-color: {COLORS['surface']};
-            border: 1px solid {COLORS['grid']};
-            border-radius: 10px;
-            padding: 14px 16px 10px 16px;
-        }}
-        [data-testid="stMetricLabel"] {{
-            color: {COLORS['text_muted']};
-        }}
         .kpi-card {{
             background-color: {COLORS['surface']};
             border: 1px solid {COLORS['grid']};
@@ -63,6 +54,9 @@ def inject_base_css() -> None:
             line-height: 1.3;
             margin-top: auto;
             padding-top: 8px;
+        }}
+        .kpi-card[title] {{
+            cursor: help;
         }}
         section[data-testid="stSidebar"] {{
             background-color: {COLORS['surface']};
@@ -126,17 +120,20 @@ def render_demo_banner() -> None:
     )
 
 
-def render_kpi_card(label: str, value: str, footer: str = "") -> None:
+def render_kpi_card(label: str, value: str, footer: str = "", help: str = "") -> None:
     """
     Fixed-height KPI card (label top, value middle, footer pinned to a
     reserved bottom area). Call once per st.columns() cell so a row of
     cards shares equal width (from the column) and equal height/alignment
     (from the shared .kpi-card CSS), whether or not each card has footer
-    text.
+    text. `help`, if given, renders as a native hover tooltip on the card
+    (mirrors st.metric's `help` parameter).
     """
+    escaped_help = help.replace('"', "&quot;")
+    title_attr = f' title="{escaped_help}"' if help else ""
     st.markdown(
         f"""
-        <div class="kpi-card">
+        <div class="kpi-card"{title_attr}>
             <div class="kpi-card-label">{label}</div>
             <div class="kpi-card-value">{value}</div>
             <div class="kpi-card-footer">{footer if footer else '&nbsp;'}</div>
