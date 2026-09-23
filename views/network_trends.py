@@ -42,14 +42,15 @@ render_page_header("Network Trends")
 render_demo_banner()
 
 st.markdown(
-    "Explore trends across the whole monitoring network. Choose any combination "
-    "of stations — or all of them — and each Monitoring Area (site pair) is "
-    "plotted in its own panel below, all sharing the same time axis and value "
-    "scale so the panels stay directly comparable."
+    "Compare climate trends across selected stations and monitoring areas "
+    "using a common time and value scale."
 )
 
 sim_start = pd.Timestamp(SIMULATION_START_DATE)
 sim_end = sim_start + pd.Timedelta(days=SIMULATION_NUM_DAYS) - pd.Timedelta(minutes=SIMULATION_INTERVAL_MINUTES)
+# Default to a 7-day window so the page opens on a readable slice; the full
+# simulated range remains selectable via the date input's min/max below.
+default_period_end = min(sim_start + pd.Timedelta(days=6), sim_end)
 
 stations_df = load_stations()
 if stations_df.empty:
@@ -88,14 +89,14 @@ row2_col1, row2_col2, row2_col3 = st.columns([1.6, 1.4, 1.2])
 with row2_col1:
     date_range = st.date_input(
         "Period",
-        value=(sim_start.date(), sim_end.date()),
+        value=(sim_start.date(), default_period_end.date()),
         min_value=sim_start.date(),
         max_value=sim_end.date(),
     )
 with row2_col2:
     hour_range = st.slider("Hour of day (local)", min_value=0, max_value=23, value=(0, 23))
 with row2_col3:
-    resolution_label = st.selectbox("Display resolution", options=list(RESOLUTION_OPTIONS.keys()), index=0)
+    resolution_label = st.selectbox("Display resolution", options=list(RESOLUTION_OPTIONS.keys()), index=1)
 
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start_date, end_date = date_range
@@ -132,6 +133,7 @@ if readings.empty:
 
 label = VARIABLES[variable]["label"]
 unit = VARIABLES[variable]["unit"]
+decimals = VARIABLES[variable]["decimals"]
 
 if variable in ("mean_radiant_temp_c", "utci_c"):
     render_estimate_note()
@@ -172,6 +174,7 @@ y_pad = (y_max - y_min) * 0.05 if y_max > y_min else 1.0
 y_range = [y_min - y_pad, y_max + y_pad]
 
 SITE_TYPE_COLORS = {"green": COLORS["green_site"], "reference": COLORS["reference_site"]}
+SITE_TYPE_SHORT_LABELS = {"green": "Green Site", "reference": "Reference Site"}
 
 # ---------------------------------------------------------------------------
 # One independent chart per Monitoring Area (site pair)
@@ -187,7 +190,7 @@ for pair_id in present_pair_ids:
     if not pair_station_ids:
         continue
 
-    st.subheader(f"Monitoring Area — {pair_label}")
+    st.subheader(pair_label)
     fig = go.Figure()
     for sid in pair_station_ids:
         site_type = STATION_SITE_TYPE_BY_ID.get(sid)
@@ -195,14 +198,47 @@ for pair_id in present_pair_ids:
         series = plot_data[plot_data["station_id"] == sid].sort_values("timestamp")
         if series.empty:
             continue
+        site_label = SITE_TYPE_SHORT_LABELS.get(site_type, STATION_NAME_BY_ID.get(sid, sid))
         fig.add_trace(
             go.Scatter(
                 x=series["timestamp"], y=series[variable],
-                mode="lines", name=STATION_NAME_BY_ID.get(sid, sid),
+                mode="lines", name=site_label,
                 line=dict(color=color, width=1.6),
+                hovertemplate=f"<b>{site_label}</b>: %{{y:.{decimals}f}} {unit}<extra></extra>",
             )
         )
+
+    # Hidden helper trace carrying the Reference-minus-Green difference so
+    # the unified hover box (below) shows time + both site values + their
+    # difference together. Drawn with a zero-width line (no marker), so it
+    # never appears on the chart itself or in the legend — it only
+    # contributes its row to the unified hover. Only added when both a green
+    # and a reference station of this pair are in the current selection.
+    green_sid = next((sid for sid in pair_station_ids if STATION_SITE_TYPE_BY_ID.get(sid) == "green"), None)
+    reference_sid = next((sid for sid in pair_station_ids if STATION_SITE_TYPE_BY_ID.get(sid) == "reference"), None)
+    if green_sid and reference_sid:
+        green_series = plot_data.loc[plot_data["station_id"] == green_sid, ["timestamp", variable]].rename(
+            columns={variable: "green"}
+        )
+        reference_series = plot_data.loc[plot_data["station_id"] == reference_sid, ["timestamp", variable]].rename(
+            columns={variable: "reference"}
+        )
+        paired = pd.merge(green_series, reference_series, on="timestamp", how="inner").sort_values("timestamp")
+        if not paired.empty:
+            paired["difference"] = paired["reference"] - paired["green"]
+            fig.add_trace(
+                go.Scatter(
+                    x=paired["timestamp"], y=paired["green"],
+                    mode="lines", name="Difference",
+                    line=dict(width=0, color=COLORS["accent"]),
+                    showlegend=False,
+                    customdata=paired["difference"],
+                    hovertemplate=f"<b>Difference (Reference − Green)</b>: %{{customdata:+.{decimals}f}} {unit}<extra></extra>",
+                )
+            )
+
     fig = apply_common_layout(fig)
+    fig.update_layout(hovermode="x unified")
     fig.update_xaxes(title="Time", range=x_range)
     fig.update_yaxes(title=f"{label} ({unit})", range=y_range)
     st.plotly_chart(fig, use_container_width=True)

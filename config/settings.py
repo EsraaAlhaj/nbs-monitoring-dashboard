@@ -70,7 +70,7 @@ SITE_TYPE_REFERENCE = "reference"
 STATIONS = {
     "site_a_nbs": {
         "station_id": "ST01",
-        "name": "Pair 1 — Green Site",
+        "name": "Station 1 — Green Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -79,14 +79,14 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.30,  # assumed rougher: vegetated canopy/shrub cover
         "description": (
-            "Proposed NbS (vegetated green-infrastructure) site at the "
-            "Female Student Housing area — a candidate location for this "
-            "pilot, not yet field-verified."
+            "Proposed NbS (vegetated green-infrastructure) site within "
+            "Monitoring Area 1 — a candidate location for this pilot, "
+            "not yet field-verified."
         ),
     },
     "site_a_reference": {
         "station_id": "ST02",
-        "name": "Pair 1 — Reference Site",
+        "name": "Station 2 — Reference Site",
         "pair_id": "pair_a",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -96,13 +96,13 @@ STATIONS = {
         "roughness_length_m": 0.03,  # assumed open, unplanted / paved surface
         "description": (
             "Proposed reference (non-intervention) site paired with the "
-            "Female Student Housing green site — a candidate location for "
+            "Monitoring Area 1 green site — a candidate location for "
             "this pilot, not yet field-verified."
         ),
     },
     "site_b_nbs": {
         "station_id": "ST03",
-        "name": "Pair 2 — Green Site",
+        "name": "Station 3 — Green Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_GREEN,
         "latitude": None,
@@ -111,14 +111,14 @@ STATIONS = {
         "measurement_height_m": 3.0,
         "roughness_length_m": 0.35,  # assumed denser vegetation/planting
         "description": (
-            "Proposed NbS (vegetated green-infrastructure) site at the "
-            "Agriculture and Gardens Area — a candidate location for this "
-            "pilot, not yet field-verified."
+            "Proposed NbS (vegetated green-infrastructure) site within "
+            "Monitoring Area 2 — a candidate location for this pilot, "
+            "not yet field-verified."
         ),
     },
     "site_b_reference": {
         "station_id": "ST04",
-        "name": "Pair 2 — Reference Site",
+        "name": "Station 4 — Reference Site",
         "pair_id": "pair_b",
         "site_type": SITE_TYPE_REFERENCE,
         "latitude": None,
@@ -128,7 +128,7 @@ STATIONS = {
         "roughness_length_m": 0.03,  # assumed open, unplanted / paved surface
         "description": (
             "Proposed reference (non-intervention) site paired with the "
-            "Agriculture and Gardens Area green site — a candidate "
+            "Monitoring Area 2 green site — a candidate "
             "location for this pilot, not yet field-verified."
         ),
     },
@@ -137,13 +137,13 @@ STATIONS = {
 STATION_PAIRS = {
     "pair_a": {
         "pair_id": "pair_a",
-        "label": "Proposed Pair 1 — Student Housing Area",
+        "label": "Monitoring Area 1",
         "green": "site_a_nbs",
         "reference": "site_a_reference",
     },
     "pair_b": {
         "pair_id": "pair_b",
-        "label": "Proposed Pair 2 — Agriculture and Gardens Area",
+        "label": "Monitoring Area 2",
         "green": "site_b_nbs",
         "reference": "site_b_reference",
     },
@@ -326,4 +326,9 @@ ESTIMATE_DISCLAIMER = (
     "UTCI and Mean Radiant Temperature shown in this prototype are "
     "estimated from simulated weather variables and should be treated as "
     "indicative rather than field-validated measurements."
+)
+
+MONITORING_AREA_PROVISIONAL_NOTE = (
+    "Monitoring areas and exact station locations are provisional and will "
+    "be confirmed following field assessment and university approval."
 )

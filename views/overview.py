@@ -15,6 +15,7 @@ import streamlit as st
 
 from config.settings import (
     COLORS,
+    MONITORING_AREA_PROVISIONAL_NOTE,
     SIMULATION_INTERVAL_MINUTES,
     SIMULATION_NUM_DAYS,
     SIMULATION_START_DATE,
@@ -54,7 +55,7 @@ st.markdown(
     "This prototype illustrates how paired micro-climate monitoring stations "
     "could track the observed temperature difference between Nature-based "
     "Solutions (vegetated green infrastructure) sites and nearby unplanted "
-    "reference sites on the University of Jordan campus. Two station pairs "
+    "reference sites on the University of Jordan campus. Two monitoring areas "
     "are shown below."
 )
 
@@ -95,10 +96,7 @@ with f4:
         max_value=sim_end.date(),
     )
 
-st.caption(
-    "Pair and site names above are proposed candidate locations, not confirmed station "
-    "placements. Exact station siting is subject to field verification and university approval."
-)
+st.caption(MONITORING_AREA_PROVISIONAL_NOTE)
 
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start_date, end_date = date_range

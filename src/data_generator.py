@@ -10,7 +10,11 @@ Design summary
 1. A single shared "regional" weather backdrop (air temperature, humidity,
    wind, solar radiation, rainfall) is generated once per timestamp — the
    four stations sit within ~1-2 km of each other, so they experience the
-   same synoptic weather.
+   same synoptic weather. Day-to-day variability is layered in at several
+   levels so the pattern never repeats identically: Tmax/Tmin/humidity/wind
+   baselines drift via a bounded random walk, AND the diurnal curve's
+   trough/peak timing itself carries a small day-to-day jitter (see
+   TROUGH_HOUR_JITTER_STD_H / PEAK_HOUR_JITTER_STD_H).
 2. Each station then gets small independent spatial/sensor noise.
 3. "green" sites additionally get a physically-motivated adjustment
    relative to the regional backdrop:
@@ -23,7 +27,14 @@ Design summary
        term that also scales with solar radiation and dryness;
      - canopy sheltering reduces local wind speed (also expressed as a
        larger aerodynamic roughness length used later for the 10 m wind
-       conversion feeding UTCI).
+       conversion feeding UTCI);
+     - the day and night cooling terms each also drift slowly day to day
+       (COOLING_STRENGTH_* / NIGHT_COOLING_OFFSET_*), so the green/reference
+       gap varies naturally instead of following a fixed model: daytime
+       occasionally sees a much weaker (but still generally positive)
+       cooling effect, and a minority of nights drift close enough to zero
+       to produce a brief, physically plausible "crossing" where the green
+       site reads a touch warmer than the reference site.
 4. MRT and UTCI are then computed per station from ITS OWN simulated
    air temperature / solar radiation / wind / humidity.
 5. Station status (active/maintenance/offline), transient sensor dropouts,
@@ -62,6 +73,13 @@ DAILY_TMIN_STEP_STD_C = 0.6
 DAILY_TMIN_BOUNDS_C = (15.0, 24.0)
 
 TROUGH_HOUR, PEAK_HOUR = 5.5, 15.5
+# Small day-to-day jitter on when the trough/peak actually falls, so the
+# diurnal curve is not the exact same shape every single day (amplitude
+# already varies day to day via the Tmax/Tmin random walks above).
+TROUGH_HOUR_JITTER_STD_H = 0.4
+PEAK_HOUR_JITTER_STD_H = 0.6
+TROUGH_HOUR_BOUNDS_H = (4.0, 7.0)
+PEAK_HOUR_BOUNDS_H = (14.0, 17.5)
 TEMP_NOISE_STD_C = 0.25
 
 DAILY_RH_BASELINE_MEAN_PCT, DAILY_RH_BASELINE_STD_PCT = 38.0, 7.0
@@ -107,6 +125,26 @@ GREEN_HUMIDITY_BOOST_MAX_PCT = 9.0
 GREEN_CANOPY_TRANSMITTANCE = 0.65  # fraction of regional solar reaching a shaded sensor
 GREEN_WIND_SHELTER_FACTOR = 0.68
 
+# Day-to-day variability in the daytime cooling *strength*: a slowly
+# drifting multiplier (random walk, not iid) on the physical shading + ET
+# cooling estimate. Mostly close to 1.0 (the nominal physical estimate) but
+# occasionally drifts toward its lower bound for a run of days, giving
+# "occasional very small [green/reference] differences" during the day
+# without ever fully erasing the expected daytime cooling.
+COOLING_STRENGTH_MEAN, COOLING_STRENGTH_STD = 1.0, 0.15
+COOLING_STRENGTH_STEP_STD = 0.07
+COOLING_STRENGTH_BOUNDS = (0.55, 1.35)
+
+# Night-time cooling gets its own slowly drifting nightly baseline (added to
+# NIGHT_RESIDUAL_COOLING_MEAN_C) which can occasionally dip slightly below
+# zero — a brief, physically plausible "nighttime crossing" where the green
+# site reads a touch warmer than the reference site for a stretch of hours —
+# plus smoothed (not iid) intra-night noise, so the effect survives hourly
+# averaging instead of cancelling out.
+NIGHT_COOLING_OFFSET_STD_C = 0.3
+NIGHT_COOLING_OFFSET_STEP_STD_C = 0.12
+NIGHT_COOLING_OFFSET_BOUNDS_C = (-0.45, 0.45)
+
 # Station-status / missing-data injection.
 MAINTENANCE_WINDOW_HOURS = (2, 5)
 OFFLINE_WINDOW_HOURS = (1, 6)
@@ -135,21 +173,31 @@ def _random_walk(rng: np.random.Generator, n_days: int, mean: float, std: float,
     return values
 
 
-def _diurnal_shape(hour_frac: np.ndarray) -> np.ndarray:
-    """Asymmetric smooth diurnal cycle in [-1, 1]: trough at TROUGH_HOUR, peak at PEAK_HOUR."""
+def _diurnal_shape(
+    hour_frac: np.ndarray,
+    trough_hour: np.ndarray | float = TROUGH_HOUR,
+    peak_hour: np.ndarray | float = PEAK_HOUR,
+) -> np.ndarray:
+    """Asymmetric smooth diurnal cycle in [-1, 1]: trough at `trough_hour`,
+    peak at `peak_hour` (each defaults to the module-level TROUGH_HOUR /
+    PEAK_HOUR). Both may instead be passed as per-timestamp arrays (same
+    shape as `hour_frac`) so the trough/peak timing can carry a small
+    day-to-day jitter instead of landing at the exact same hour every day."""
     h = np.asarray(hour_frac, dtype=float)
+    trough_hour = np.broadcast_to(np.asarray(trough_hour, dtype=float), h.shape)
+    peak_hour = np.broadcast_to(np.asarray(peak_hour, dtype=float), h.shape)
     shape = np.empty_like(h)
 
-    rising_span = PEAK_HOUR - TROUGH_HOUR
-    falling_span = 24 - PEAK_HOUR + TROUGH_HOUR
+    rising_span = peak_hour - trough_hour
+    falling_span = 24 - peak_hour + trough_hour
 
-    is_rising = (h >= TROUGH_HOUR) & (h < PEAK_HOUR)
-    frac_rise = (h[is_rising] - TROUGH_HOUR) / rising_span
+    is_rising = (h >= trough_hour) & (h < peak_hour)
+    frac_rise = (h[is_rising] - trough_hour[is_rising]) / rising_span[is_rising]
     shape[is_rising] = -np.cos(np.pi * frac_rise)
 
     is_falling = ~is_rising
-    h_shift = np.where(h[is_falling] < TROUGH_HOUR, h[is_falling] + 24, h[is_falling])
-    frac_fall = (h_shift - PEAK_HOUR) / falling_span
+    h_shift = np.where(h[is_falling] < trough_hour[is_falling], h[is_falling] + 24, h[is_falling])
+    frac_fall = (h_shift - peak_hour[is_falling]) / falling_span[is_falling]
     shape[is_falling] = np.cos(np.pi * frac_fall)
 
     return shape
@@ -185,6 +233,12 @@ def generate_regional_weather(rng: np.random.Generator) -> pd.DataFrame:
     hazy_day = rng.random(n_days) < HAZY_DAY_PROBABILITY
     haze_factor = np.where(hazy_day, rng.uniform(*HAZY_DAY_FACTOR_RANGE, size=n_days), 1.0)
     wind_dir_daily = PREVAILING_WIND_DEG + np.cumsum(rng.normal(0, WIND_DIR_DAILY_DRIFT_STD_DEG, size=n_days))
+    daily_trough_hour = np.clip(
+        TROUGH_HOUR + rng.normal(0, TROUGH_HOUR_JITTER_STD_H, size=n_days), *TROUGH_HOUR_BOUNDS_H
+    )
+    daily_peak_hour = np.clip(
+        PEAK_HOUR + rng.normal(0, PEAK_HOUR_JITTER_STD_H, size=n_days), *PEAK_HOUR_BOUNDS_H
+    )
 
     tmax = daily_tmax[day_of_period]
     tmin = daily_tmin[day_of_period]
@@ -193,8 +247,13 @@ def generate_regional_weather(rng: np.random.Generator) -> pd.DataFrame:
     peak_solar = daily_peak_solar[day_of_period]
     haze = haze_factor[day_of_period]
     wind_dir_base = wind_dir_daily[day_of_period]
+    trough_hour = daily_trough_hour[day_of_period]
+    peak_hour = daily_peak_hour[day_of_period]
 
-    shape = _diurnal_shape(hour_frac)
+    # Reused for temperature, humidity, and wind below so the whole diurnal
+    # cycle shifts together on a given day (physically coherent) rather than
+    # each variable jittering independently.
+    shape = _diurnal_shape(hour_frac, trough_hour, peak_hour)
     daily_mean = (tmax + tmin) / 2
     daily_half_range = (tmax - tmin) / 2
     air_temp = daily_mean + daily_half_range * shape + _smooth_noise(rng, n, TEMP_NOISE_STD_C)
@@ -264,6 +323,7 @@ def _apply_site_adjustment(regional: pd.DataFrame, station_key: str, rng: np.ran
     )
 
     if meta["site_type"] == SITE_TYPE_GREEN:
+        day_idx = regional["day_index"].to_numpy()
         solar_frac = np.clip(regional["solar_radiation_wm2"].to_numpy() / PEAK_SOLAR_MEAN_WM2, 0, None)
         is_day = regional["solar_radiation_wm2"].to_numpy() > 5.0
 
@@ -278,12 +338,35 @@ def _apply_site_adjustment(regional: pd.DataFrame, station_key: str, rng: np.ran
         )
         site["solar_radiation_wm2"] = np.clip(site["solar_radiation_wm2"], 0, None)
 
+        # Slowly drifting day-to-day cooling-strength multiplier (see
+        # constants above) so the green/reference gap is not a fixed
+        # physical constant day after day — most days sit close to the
+        # nominal physical estimate, but the effect occasionally weakens for
+        # a run of days.
+        cooling_strength = _random_walk(
+            rng, SIMULATION_NUM_DAYS, COOLING_STRENGTH_MEAN, COOLING_STRENGTH_STD,
+            COOLING_STRENGTH_STEP_STD, COOLING_STRENGTH_BOUNDS,
+        )[day_idx]
+
         shading_cooling = SHADE_MAX_COOLING_C * solar_frac
         dryness = 1 - regional["relative_humidity_pct"].to_numpy() / 100.0
         et_cooling = ET_MAX_COOLING_C * (solar_frac ** 0.7) * np.clip(dryness, 0.15, 1.0) ** 0.5
-        day_cooling = shading_cooling + et_cooling + rng.normal(0, 0.15, n)
+        day_cooling = (shading_cooling + et_cooling) * cooling_strength + rng.normal(0, 0.15, n)
 
-        night_cooling = rng.normal(NIGHT_RESIDUAL_COOLING_MEAN_C, NIGHT_RESIDUAL_COOLING_STD_C, n)
+        # Nightly baseline also drifts slowly day to day (independent random
+        # walk, can dip slightly below zero) plus smoothed — not
+        # independent-per-reading — noise, so an occasional weak night
+        # survives hourly averaging as a genuine, visible "nighttime
+        # crossing" rather than being cancelled out by resampling.
+        nightly_offset = _random_walk(
+            rng, SIMULATION_NUM_DAYS, 0.0, NIGHT_COOLING_OFFSET_STD_C,
+            NIGHT_COOLING_OFFSET_STEP_STD_C, NIGHT_COOLING_OFFSET_BOUNDS_C,
+        )[day_idx]
+        night_cooling = (
+            NIGHT_RESIDUAL_COOLING_MEAN_C
+            + nightly_offset
+            + _smooth_noise(rng, n, NIGHT_RESIDUAL_COOLING_STD_C, window=5)
+        )
 
         cooling = np.where(is_day, day_cooling, night_cooling)
         site["air_temperature_c"] = site["air_temperature_c"] - cooling
